@@ -1,3 +1,6 @@
+
+# -*- coding: utf-8 -*-
+
 from __future__ import division, print_function
 
 import sys
@@ -22,6 +25,7 @@ from matplotlib import pyplot as plt
 
 import keras.metrics
 from keras.utils import to_categorical
+from keras import regularizers
 
 classes = [0,1,2,3]
 labels_dict = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
@@ -167,45 +171,101 @@ def get_model():
 	# Build MLP
 	visible1 = Input(shape=(1024,))
 	hidden1 = Dense(1024, activation='relu')(visible1)
-	hidden2 = Dense(512, activation='relu')(hidden1)
+	hidden2 = Dense(1024, activation='relu')(hidden1)
+	#hidden3 = Dense(1024, activation='relu')(hidden2)
+	#output = Dense(4, activation='softmax')(hidden3)
 	output = Dense(4, activation='softmax')(hidden2)
 	model = Model(inputs=visible1, outputs=output)
-	model.compile(optimizer='Adam', loss='mean_squared_error', metrics=['accuracy', 'mse', keras.metrics.Precision()])
+	model.compile(optimizer='Adam', loss='mean_squared_error', metrics=['accuracy', 'mse', keras.metrics.Precision(), keras.metrics.Recall()])
 
 	return model
 
-def plot(train_scores, test_scores, epochs):
-	param_range = np.arange(1, epochs, 1)
+def plot_loss(train_loss, val_loss, epochs):
+	plt.figure()
+	plt.title('Performance da Validação Cruzada')
+	plt.ylim(min(train_loss), max(val_loss))
+	plt.xlim(0, epochs-1)
+	plt.xlabel("Épocas")
+	plt.ylabel("Erro")
+	plt.yscale('log')
+	plt.grid()
 
-	# Calculate mean and standard deviation for training set scores
-	train_mean = np.mean(train_scores, axis=1)
-	train_std = np.std(train_scores, axis=1)
+	plt.plot(
+	    train_loss,
+	    '-',
+	    color="b",
+	    label="Treinamento"
+	)
+	plt.plot(
+	    val_loss,
+	    '-',
+	    color="g",
+	    label="Validação"
+	)
 
-	# Calculate mean and standard deviation for test set scores
-	test_mean = np.mean(test_scores, axis=1)
-	test_std = np.std(test_scores, axis=1)
+	plt.legend(loc="lower right")
+	plt.show()
 
-	# Plot mean accuracy scores for training and test sets
-	plt.plot(param_range, train_mean, label="Training score", color="black")
-	plt.plot(param_range, test_mean, label="Cross-validation score", color="dimgrey")
 
-	# Plot accurancy bands for training and test sets
-	plt.fill_between(param_range, train_mean - train_std, train_mean + train_std, color="gray")
-	plt.fill_between(param_range, test_mean - test_std, test_mean + test_std, color="gainsboro")
+def plot(train_scores, test_scores, epochs, training_label, validation_label, ylabel):
+	
 
-	# Create plot
-	plt.title("Validation Curve With Yamnet")
-	plt.xlabel("Epochs")
-	plt.ylabel("Accuracy Score")
-	plt.tight_layout()
-	plt.legend(loc="best")
+	plt.figure()
+	plt.title('Performance da Validação Cruzada')
+	plt.ylim(0.2, 1.01)
+	plt.xlim(0, epochs-1)
+	plt.xlabel("Épocas")
+	plt.ylabel(ylabel)
+	plt.grid()
+
+	# Calculate mean and distribution of training history
+	train_scores_mean = np.mean(train_scores, axis=0)
+	train_scores_std = np.std(train_scores, axis=0)
+	test_scores_mean = np.mean(test_scores, axis=0)
+	test_scores_std = np.std(test_scores, axis=0)
+
+	# Plot the average scores
+	plt.plot(
+	    train_scores_mean,
+	    '-',
+	    color="b",
+	    label=training_label
+	)
+	plt.plot(
+	    test_scores_mean,
+	    '-',
+	    color="g",
+	    label=validation_label
+	)
+
+	# Plot a shaded area to represent the score distribution
+	epochs = list(range(epochs))
+	plt.fill_between(
+	    epochs,
+	    train_scores_mean - train_scores_std,
+	    train_scores_mean + train_scores_std,
+	    alpha=0.1,
+	    color="b"
+	)
+	plt.fill_between(
+	    epochs,
+	    test_scores_mean - test_scores_std,
+	    test_scores_mean + test_scores_std,
+	    alpha=0.1,
+	    color="g"
+	)
+
+	plt.legend(loc="lower right")
 	plt.show()
 
 def main():
-	all_accuracy = []
-	all_loss = []
+	accuracy_train_scores = []
+	accuracy_test_scores = []
+	precision_train_scores = []
+	precision_test_scores = []
+	best_loss = 0
 
-	epochs=10
+	epochs=100
 
 	f_X_train = 0
 	f_y_train = 1
@@ -278,12 +338,32 @@ def main():
 
 		Y_V = to_categorical(Y_V)
 
-		print("FOLD %d:" % count)
-		print(X.shape, Y.shape)
-		count += 1
+		history = model.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V))
+		
+		accuracy_train_scores.append(history.history['accuracy'])
+		accuracy_test_scores.append(history.history['val_accuracy'])
 
-		history_train = model.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V))
+		precision_train_scores.append(history.history['precision_' + str(count)])
+		precision_test_scores.append(history.history['val_precision_' + str(count)])
+
+		if count == 1:
+			best_loss = history.history['mse'][-1]
+			losses = history.history['mse']
+			val_losses = history.history['val_loss']
+
+		if best_loss > history.history['val_loss'][-1]:
+			best_loss = history.history['val_loss'][-1]
+			losses = history.history['mse']
+			val_losses = history.history['val_loss']
+
+		print("Fold %d:" % count)
+		#print("Training accuracy: %.2f%%" % (history.history['accuracy'][-1]*100))
+		#print("Testing accuracy: %.2f%%" % (history.history['val_accuracy'][-1]*100))
+		count += 1
 		
-		plot(history_train.history['accuracy'], history_test[1], epochs)
-		
+	plot(accuracy_train_scores, accuracy_test_scores, epochs, "Treinamento", "Validação", "Acurácia")
+	plot(precision_train_scores, precision_test_scores, epochs, "Treinamento", "Validação", "Precisão")
+	plot_loss(losses, val_losses, epochs)
+
 	return
+main()
