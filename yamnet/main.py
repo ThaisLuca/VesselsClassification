@@ -27,6 +27,18 @@ import keras.metrics
 from keras.utils import to_categorical
 from keras import regularizers
 
+try:
+  from tensorflow.compat.v1 import ConfigProto
+  from tensorflow.compat.v1 import InteractiveSession
+
+  config = ConfigProto()
+  config.gpu_options.allow_growth = True
+  session = InteractiveSession(config=config)
+except Exception as e:
+  print(e)
+  print("Not possible to set gpu allow growth")
+
+
 classes = [0,1,2,3]
 labels_dict = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
@@ -167,23 +179,12 @@ def build_folds_test(waveforms, labels):
 # for I in range(len(audio)/tamanho_entrada):
 #	inputs.append(audio[I*tamanho_entrada:I*(tamanho_entrada+1)])
 
-def get_model():
-	# Build MLP
-	visible1 = Input(shape=(1024,))
-	hidden1 = Dense(1024, activation='relu')(visible1)
-	hidden2 = Dense(1024, activation='relu')(hidden1)
-	#hidden3 = Dense(1024, activation='relu')(hidden2)
-	#output = Dense(4, activation='softmax')(hidden3)
-	output = Dense(4, activation='softmax')(hidden2)
-	model = Model(inputs=visible1, outputs=output)
-	model.compile(optimizer='Adam', loss='mean_squared_error', metrics=['accuracy', 'mse', keras.metrics.Precision(), keras.metrics.Recall()])
-
-	return model
-
 def plot_loss(train_loss, val_loss, epochs):
 	plt.figure()
 	plt.title('Performance da Validação Cruzada')
-	plt.ylim(min(train_loss), max(val_loss))
+	mininums = [min(train_loss), min(val_loss)]
+	maxinums = [max(train_loss), max(val_loss)]
+	plt.ylim(min(mininums), max(maxinums))
 	plt.xlim(0, epochs-1)
 	plt.xlabel("Épocas")
 	plt.ylabel("Erro")
@@ -199,7 +200,7 @@ def plot_loss(train_loss, val_loss, epochs):
 	plt.plot(
 	    val_loss,
 	    '-',
-	    color="g",
+	    color="r",
 	    label="Validação"
 	)
 
@@ -234,7 +235,7 @@ def plot(train_scores, test_scores, epochs, training_label, validation_label, yl
 	plt.plot(
 	    test_scores_mean,
 	    '-',
-	    color="g",
+	    color="r",
 	    label=validation_label
 	)
 
@@ -252,20 +253,70 @@ def plot(train_scores, test_scores, epochs, training_label, validation_label, yl
 	    test_scores_mean - test_scores_std,
 	    test_scores_mean + test_scores_std,
 	    alpha=0.1,
-	    color="g"
+	    color="r"
 	)
 
 	plt.legend(loc="lower right")
 	plt.show()
+
+
+def get_model():
+	# Build MLP
+	visible1 = Input(shape=(1024,))
+	hidden1 = Dense(1024, activation='relu')(visible1)
+	hidden2 = Dense(1024, activation='relu')(hidden1)
+	#hidden3 = Dense(1024, activation='relu')(hidden2)
+	#output = Dense(4, activation='softmax')(hidden3)
+	output = Dense(4, activation='softmax')(hidden2)
+	model = Model(inputs=visible1, outputs=output)
+	model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['accuracy', 'mse', keras.metrics.Precision(), keras.metrics.Recall()])
+
+	return model
+
+
+def save_to_file(accuracy_train_scores, accuracy_test_scores, precision_train_scores, precision_test_scores, train_error, test_error):
+	with open("logs/log.txt", "w") as f:
+
+		accuracy_train = [accuracy_train_scores[0][-1], accuracy_train_scores[1][-1], accuracy_train_scores[2][-1], accuracy_train_scores[3][-1], accuracy_train_scores[4][-1]]
+		accuracy_test = [accuracy_test_scores[0][-1], accuracy_test_scores[1][-1], accuracy_test_scores[2][-1], accuracy_test_scores[3][-1], accuracy_test_scores[4][-1]]
+
+		precision_train = [precision_train_scores[0][-1], precision_train_scores[1][-1], precision_train_scores[2][-1], precision_train_scores[3][-1], precision_train_scores[4][-1]]
+		precision_test = [precision_test_scores[0][-1], precision_test_scores[1][-1], precision_test_scores[2][-1], precision_test_scores[3][-1], precision_test_scores[4][-1]]
+
+		t_error =  [train_error[0][-1], train_error[1][-1], train_error[2][-1], train_error[3][-1], train_error[4][-1]]
+		v_error =  [test_error[0][-1], test_error[1][-1], test_error[2][-1], test_error[3][-1], test_error[4][-1]]
+
+		f.write("Accuracy: \n")
+		f.write("   Mean during training: " + str(np.mean(accuracy_train)) + "\n")
+		f.write("   Mean during validation: " + str(np.mean(accuracy_test)) + "\n")
+		f.write("   Standart desviation during training: " + str(np.std(accuracy_train)) + "\n")
+		f.write("   Standart desviation during validation: " + str(np.std(accuracy_test)) + "\n")
+
+		f.write("Precision: \n")
+		f.write("   Mean during training: " + str(np.mean(precision_train)) + "\n")
+		f.write("   Mean during validation: " + str(np.mean(precision_test)) + "\n")
+		f.write("   Standart desviation during training: " + str(np.std(precision_train)) + "\n")
+		f.write("   Standart desviation during validation: " + str(np.std(precision_test)) + "\n")
+
+		f.write("Error: \n")
+		f.write("   Mean during training: " + str(np.mean(t_error)) + "\n")
+		f.write("   Mean during tests: " + str(np.mean(v_error)) + "\n")
+		f.write("   Standart desviation during training: " + str(np.std(t_error)) + "\n")
+		f.write("   Standart desviation during tests: " + str(np.std(v_error)) + "\n")
+
+	f.close()
 
 def main():
 	accuracy_train_scores = []
 	accuracy_test_scores = []
 	precision_train_scores = []
 	precision_test_scores = []
+	train_error = []
+	test_error = []
 	best_loss = 0
+	best_model = None
 
-	epochs=100
+	epochs=1000
 
 	f_X_train = 0
 	f_y_train = 1
@@ -277,7 +328,6 @@ def main():
 	# Build network
 	yamnet = yamnet_model.yamnet_frames_model(params)
 	yamnet.load_weights('yamnet.h5')
-	yamnet_classes = yamnet_model.class_names('yamnet_class_map.csv')
 
 	get_feature_layer_output = K.function([yamnet.layers[0].input], [yamnet.layers[-3].output])
 
@@ -306,7 +356,7 @@ def main():
 			labels.append(label)
 			last += avg
 
-	folds, X_test, y_test = build_folds_test(waveforms, labels)
+	folds, X_test, Y_test = build_folds_test(waveforms, labels)
 
 	count = 1
 	for fold in folds:
@@ -346,14 +396,17 @@ def main():
 		precision_train_scores.append(history.history['precision_' + str(count)])
 		precision_test_scores.append(history.history['val_precision_' + str(count)])
 
+		train_error.append(history.history['loss'])
+		test_error.append(history.history['val_loss'])
+
 		if count == 1:
-			best_loss = history.history['mse'][-1]
-			losses = history.history['mse']
+			best_loss = history.history['loss'][-1]
+			losses = history.history['loss']
 			val_losses = history.history['val_loss']
 
 		if best_loss > history.history['val_loss'][-1]:
 			best_loss = history.history['val_loss'][-1]
-			losses = history.history['mse']
+			losses = history.history['loss']
 			val_losses = history.history['val_loss']
 
 		print("Fold %d:" % count)
@@ -363,7 +416,10 @@ def main():
 		
 	plot(accuracy_train_scores, accuracy_test_scores, epochs, "Treinamento", "Validação", "Acurácia")
 	plot(precision_train_scores, precision_test_scores, epochs, "Treinamento", "Validação", "Precisão")
-	plot_loss(losses, val_losses, epochs)
+	plot(train_error, test_error, epochs, "Treinamento", "Validação", "Erro")
+	#plot_loss(losses, val_losses, epochs)
+
+	save_to_file(accuracy_train_scores, accuracy_test_scores, precision_train_scores, precision_test_scores, train_error, test_error)
 
 	return
 main()
