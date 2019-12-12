@@ -163,7 +163,7 @@ def build_folds_test(waveforms, labels):
 	for c in classes:
 		X_val.append(waveforms[c][3])
 		y_val.append(c)
-		X_train.append(waveforms[c][3])
+		X_train.append(waveforms[c][0])
 		X_train.append(waveforms[c][2])
 		X_train.append(waveforms[c][1])
 		for i in range(0, 3):
@@ -263,13 +263,13 @@ def plot(train_scores, test_scores, epochs, training_label, validation_label, yl
 def get_model():
 	# Build MLP
 	visible1 = Input(shape=(1024,))
-	hidden1 = Dense(1024, activation='relu')(visible1)
-	hidden2 = Dense(1024, activation='relu')(hidden1)
+	hidden1 = Dense(100, activation='relu')(visible1)
+	#hidden2 = Dense(1024, activation='relu')(hidden1)
 	#hidden3 = Dense(1024, activation='relu')(hidden2)
 	#output = Dense(4, activation='softmax')(hidden3)
-	output = Dense(4, activation='softmax')(hidden2)
+	output = Dense(4, activation='softmax')(hidden1)
 	model = Model(inputs=visible1, outputs=output)
-	model.compile(optimizer='Adam', loss='categorical_crossentropy', metrics=['accuracy', 'mse', keras.metrics.Precision(), keras.metrics.Recall()])
+	model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
 
 	return model
 
@@ -316,7 +316,7 @@ def main():
 	best_loss = 0
 	best_model = None
 
-	epochs=1000
+	epochs=100
 
 	f_X_train = 0
 	f_y_train = 1
@@ -403,23 +403,32 @@ def main():
 			best_loss = history.history['loss'][-1]
 			losses = history.history['loss']
 			val_losses = history.history['val_loss']
+			model.save_weights("model.h5")
 
 		if best_loss > history.history['val_loss'][-1]:
 			best_loss = history.history['val_loss'][-1]
 			losses = history.history['loss']
 			val_losses = history.history['val_loss']
+			model.save_weights("model.h5")
+
 
 		print("Fold %d:" % count)
 		#print("Training accuracy: %.2f%%" % (history.history['accuracy'][-1]*100))
 		#print("Testing accuracy: %.2f%%" % (history.history['val_accuracy'][-1]*100))
 		count += 1
 		
-	plot(accuracy_train_scores, accuracy_test_scores, epochs, "Treinamento", "Validação", "Acurácia")
-	plot(precision_train_scores, precision_test_scores, epochs, "Treinamento", "Validação", "Precisão")
-	plot(train_error, test_error, epochs, "Treinamento", "Validação", "Erro")
+	#plot(accuracy_train_scores, accuracy_test_scores, epochs, "Treinamento", "Validação", "Acurácia")
+	#plot(precision_train_scores, precision_test_scores, epochs, "Treinamento", "Validação", "Precisão")
+	#plot(train_error, test_error, epochs, "Treinamento", "Validação", "Erro")
 	#plot_loss(losses, val_losses, epochs)
 
-	save_to_file(accuracy_train_scores, accuracy_test_scores, precision_train_scores, precision_test_scores, train_error, test_error)
+	#save_to_file(accuracy_train_scores, accuracy_test_scores, precision_train_scores, precision_test_scores, train_error, test_error)
+
+	loaded_model = get_model()
+	best_model = loaded_model.load_weights("model.h5")
+	score = loaded_model.evaluate(X, Y, verbose=0)
+	print(loaded_model.metrics_names)
+	print(score)
 
 	return
 main()
