@@ -40,6 +40,7 @@ except Exception as e:
 
 classes = [0,1,2,3]
 labels_dict = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+boost = False
 
 # for I in range(len(audio)/tamanho_entrada):
 #	inputs.append(audio[I*tamanho_entrada:I*(tamanho_entrada+1)])
@@ -48,13 +49,11 @@ def get_model():
 	# Build MLP
 	visible1 = Input(shape=(1024,))
 	hidden1 = Dense(100, activation='relu')(visible1)
-	#hidden2 = Dense(1024, activation='relu')(hidden1)
-	#hidden3 = Dense(1024, activation='relu')(hidden2)
-	#output = Dense(4, activation='softmax')(hidden3)
 	output = Dense(4, activation='softmax')(hidden1)
 	model = Model(inputs=visible1, outputs=output)
-	adam = optimizers.Adam(learning_rate=0.001)
-	model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
+	#adam = optimizers.Adam(learning_rate=0.001)
+	sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+	model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
 
 	return model
 
@@ -91,6 +90,10 @@ def main():
 	yamnet.load_weights('yamnet.h5')
 
 	get_feature_layer_output = K.function([yamnet.layers[0].input], [yamnet.layers[-3].output])
+
+	model = get_model()
+	ann_estimator = KerasClassifier(build_fn=model, epochs=epochs, batch_size=10, verbose=0)
+	boosted_ann = AdaBoostClassifier(base_estimator=ann_estimator)
 
 	waveforms = {}
 	labels = []
@@ -130,9 +133,9 @@ def main():
 	X_T = np.array(X_T)
 	Y_T = np.array(Y_T)
 
-	Y_T = to_categorical(Y_T)
+	#Y_T = to_categorical(Y_T)
 
-	count = 1
+	count = 2
 	for fold in folds:
 		X = []
 		X_V = []
@@ -155,21 +158,22 @@ def main():
 		X = np.array(X)
 		Y = np.array(Y)
 
-		Y = to_categorical(Y)
+		#Y = to_categorical(Y)
 
 		X_V = np.array(X_V)
 		Y_V = np.array(Y_V)
 
-		Y_V = to_categorical(Y_V)
+		#Y_V = to_categorical(Y_V)
 
-		# Using AdaBoost
-		ann_estimator = KerasClassifier(build_fn=model, epochs=epochs, batch_size=10, verbose=0)
-		boosted_ann = AdaBoostClassifier(base_estimator=ann_estimator)
-		history = boosted_ann.fit(X, Y)
 
-		# Train and Validation
-		#callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
-		#history = model.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
+		if(boost):
+			# Using AdaBoost
+			boosted_ann.fit(X, Y)
+			print(boosted_ann.score(X_V, Y_V))
+		else:
+			# Train and Validation
+			#callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
+			history = model.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
 		
 		# Save train and validation accuracy
 		accuracy_train_scores.append(history.history['accuracy'])
@@ -187,10 +191,13 @@ def main():
 		train_error.append(history.history['loss'])
 		validation_error.append(history.history['val_loss'])
 
-		# Evaluate on test set
-		score = model.evaluate(X_T, Y_T)
-
-		#score = boosted_ann.predict(X_T, Y_T)
+		if(boost):
+			# Evaluate on test set using boost
+			score = boosted_ann.predict(X_T, Y_T)
+			print("Score")
+			print(score)
+		else:
+			score = model.evaluate(X_T, Y_T)
 
 		# Save error, accuracy and precision
 		test_error.append(score[0])
@@ -198,7 +205,7 @@ def main():
 		precision_test_scores.append(score[2])
 		recall_test_scores.append(score[3])
 
-		if count == 1:
+		if count == 1 or count == 2:
 			best_loss = history.history['loss'][-1]
 			losses = history.history['loss']
 			val_losses = history.history['val_loss']
@@ -213,10 +220,10 @@ def main():
 		#print("Testing accuracy: %.2f%%" % (history.history['val_accuracy'][-1]*100))
 		count += 1
 		
-	plt.plot(accuracy_train_scores, accuracy_validation_scores, epochs, "Treinamento", "Validação", "Acurácia")
-	plt.plot(precision_train_scores, precision_validation_scores, epochs, "Treinamento", "Validação", "Precisão")
-	plt.plot(recall_train_scores, recall_validation_scores, epochs, "Treinamento", "Validação", "Recall")
-	plt.plot_loss(losses, val_losses, epochs)
+	#plt.plot(accuracy_train_scores, accuracy_validation_scores, epochs, "Treinamento", "Validação", "Acurácia")
+	#plt.plot(precision_train_scores, precision_validation_scores, epochs, "Treinamento", "Validação", "Precisão")
+	#plt.plot(recall_train_scores, recall_validation_scores, epochs, "Treinamento", "Validação", "Recall")
+	#plt.plot_loss(losses, val_losses, epochs)
 
 	util.save_to_file(accuracy_train_scores, accuracy_validation_scores, precision_train_scores, precision_validation_scores, recall_train_scores, recall_validation_scores, accuracy_test_scores, precision_test_scores, recall_test_scores, train_error, validation_error, test_error)
 	return
