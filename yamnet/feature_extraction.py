@@ -91,9 +91,9 @@ def main():
 
 	get_feature_layer_output = K.function([yamnet.layers[0].input], [yamnet.layers[-3].output])
 
-	model = get_model()
-	ann_estimator = KerasClassifier(build_fn=model, epochs=epochs, batch_size=10, verbose=0)
-	boosted_ann = AdaBoostClassifier(base_estimator=ann_estimator)
+	#model = get_model()
+	#ann_estimator = KerasClassifier(build_fn=model, epochs=epochs, batch_size=10, verbose=0)
+	#boosted_ann = AdaBoostClassifier(base_estimator=ann_estimator)
 
 	waveforms = {}
 	labels = []
@@ -133,7 +133,7 @@ def main():
 	X_T = np.array(X_T)
 	Y_T = np.array(Y_T)
 
-	#Y_T = to_categorical(Y_T)
+	Y_T = to_categorical(Y_T)
 
 	count = 2
 	for fold in folds:
@@ -158,13 +158,12 @@ def main():
 		X = np.array(X)
 		Y = np.array(Y)
 
-		#Y = to_categorical(Y)
+		Y = to_categorical(Y)
 
 		X_V = np.array(X_V)
 		Y_V = np.array(Y_V)
 
-		#Y_V = to_categorical(Y_V)
-
+		Y_V = to_categorical(Y_V)
 
 		if(boost):
 			# Using AdaBoost
