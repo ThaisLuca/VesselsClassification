@@ -156,7 +156,7 @@ def main():
 	# Build network
 	yamnet = yamnet_model.yamnet_frames_model(params)
 	print(yamnet.summary())
-	yamnet.load_weights('yamnet.h5')
+	yamnet.load_weights('yamnet.h5', by_name=True, skip_mismatch=True)
 
 	sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 	yamnet.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
