@@ -119,7 +119,7 @@ def yamnet_frames_model(feature_params):
     well as a (num_spectrogram_frames, num_mel_bins) spectrogram feature
     matrix.
   """
-  waveform = layers.Input(batch_shape=(1, None))
+  waveform = layers.Input(batch_shape=(None, None))
   # Store the intermediate spectrogram features to use in visualization.
   spectrogram = features_lib.waveform_to_log_mel_spectrogram(
     tf.squeeze(waveform, axis=0), feature_params)
