@@ -4,19 +4,18 @@ from __future__ import division, print_function
 
 import sys
 
+import yamnet_model as ym
+
 import numpy as np
 import resampy
 import soundfile as sf
-
-import params
-import yamnet as yamnet_model
 
 import tensorflow as tf
 from sklearn.ensemble import AdaBoostClassifier
 
 import keras
 from keras.models import Sequential, Model
-from keras import layers
+from keras.layers import Dense, Flatten
 from keras import backend as K
 from tensorflow.keras import optimizers
 
@@ -42,88 +41,6 @@ except Exception as e:
 
 classes = [0,1,2,3]
 labels_dict = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
-
-def _batch_norm(name):
-  def _bn_layer(layer_input):
-    return layers.BatchNormalization(
-      name=name,
-      center=params.BATCHNORM_CENTER,
-      scale=params.BATCHNORM_SCALE,
-      epsilon=params.BATCHNORM_EPSILON)(layer_input)
-  return _bn_layer
-
-
-def _conv(name, kernel, stride, filters):
-  def _conv_layer(layer_input):
-    output = layers.Conv2D(name='{}/conv'.format(name),
-                           filters=filters,
-                           kernel_size=kernel,
-                           strides=stride,
-                           padding=params.CONV_PADDING,
-                           use_bias=False,
-                           activation=None)(layer_input)
-    output = _batch_norm(name='{}/conv/bn'.format(name))(output)
-    output = layers.ReLU(name='{}/relu'.format(name))(output)
-    return output
-  return _conv_layer
-
-
-def _separable_conv(name, kernel, stride, filters):
-  def _separable_conv_layer(layer_input):
-    output = layers.DepthwiseConv2D(name='{}/depthwise_conv'.format(name),
-                                    kernel_size=kernel,
-                                    strides=stride,
-                                    depth_multiplier=1,
-                                    padding=params.CONV_PADDING,
-                                    use_bias=False,
-                                    activation=None)(layer_input)
-    output = _batch_norm(name='{}/depthwise_conv/bn'.format(name))(output)
-    output = layers.ReLU(name='{}/depthwise_conv/relu'.format(name))(output)
-    output = layers.Conv2D(name='{}/pointwise_conv'.format(name),
-                           filters=filters,
-                           kernel_size=(1, 1),
-                           strides=1,
-                           padding=params.CONV_PADDING,
-                           use_bias=False,
-                           activation=None)(output)
-    output = _batch_norm(name='{}/pointwise_conv/bn'.format(name))(output)
-    output = layers.ReLU(name='{}/pointwise_conv/relu'.format(name))(output)
-    return output
-  return _separable_conv_layer
-
-
-_YAMNET_LAYER_DEFS = [
-    # (layer_function, kernel, stride, num_filters)
-    (_conv,          [3, 3], 2,   32),
-    (_separable_conv, [3, 3], 1,   64),
-    (_separable_conv, [3, 3], 2,  128),
-    (_separable_conv, [3, 3], 1,  128),
-    (_separable_conv, [3, 3], 2,  256),
-    (_separable_conv, [3, 3], 1,  256),
-    (_separable_conv, [3, 3], 2,  512),
-    (_separable_conv, [3, 3], 1,  512),
-    (_separable_conv, [3, 3], 1,  512),
-    (_separable_conv, [3, 3], 1,  512),
-    (_separable_conv, [3, 3], 1,  512),
-    (_separable_conv, [3, 3], 1,  512),
-    (_separable_conv, [3, 3], 2, 1024),
-    (_separable_conv, [3, 3], 1, 1024)
-]
-
-def get_model():
-	waveform = layers.Input(batch_shape=(None, None))
-	# Store the intermediate spectrogram features to use in visualization.
-	spectrogram = features_lib.waveform_to_log_mel_spectrogram(tf.squeeze(waveform, axis=0), params)
-	patches = features_lib.spectrogram_to_patches(spectrogram, params)
-	net = layers.Reshape((params.PATCH_FRAMES, params.PATCH_BANDS, 1),input_shape=(params.PATCH_FRAMES, params.PATCH_BANDS))(patches)
-	for (i, (layer_fun, kernel, stride, filters)) in enumerate(_YAMNET_LAYER_DEFS):
-		net = layer_fun('layer{}'.format(i + 1), kernel, stride, filters)(net)
-	net = layers.GlobalAveragePooling2D()(net)
-	logits = layers.Dense(units=params.NUM_CLASSES, use_bias=True)(net)
-	predictions = layers.Activation(name=params.EXAMPLE_PREDICTIONS_LAYER_NAME, activation=params.CLASSIFIER_ACTIVATION)(logits)
-	frames_model = Model(name='yamnet_frames', inputs=waveform, outputs=[predictions, spectrogram])
-	return frames_model
-	
 
 def main():
 	accuracy_train_scores = []
@@ -154,12 +71,10 @@ def main():
 	all_files = util.get_files_path()[4:]
 
 	# Build network
-	yamnet = yamnet_model.yamnet_frames_model(params)
-	print(yamnet.summary())
-	yamnet.load_weights('yamnet.h5', by_name=True, skip_mismatch=True)
+	model = ym.fine_tuning()
+	#print(model.summary())
 
-	sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-	yamnet.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
+	return
 
 	waveforms = {}
 	labels = []
@@ -197,7 +112,8 @@ def main():
 		Y_V = np.array(fold[f_y_val])
 		Y_V = to_categorical(Y_V)
 
-		history = yamnet.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
+		print(X.shape, Y.shape)
+		history = model.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
 
 		# Save train and validation accuracy
 		accuracy_train_scores.append(history.history['accuracy'])
@@ -216,7 +132,7 @@ def main():
 		validation_error.append(history.history['val_loss'])
 
 		# Evaluate on test set
-		score = yamnet.evaluate(X_T, Y_T)
+		score = model.evaluate(X_T, Y_T)
 
 		if count == 1 or count == 2:
 			best_loss = history.history['loss'][-1]
