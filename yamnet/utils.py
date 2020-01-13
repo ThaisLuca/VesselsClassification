@@ -3,8 +3,8 @@ import os
 from os import listdir
 from os.path import isfile, join
 import sys
-
 import numpy as np
+import soundfile as sf
 
 def get_files_path():
 	path = os.getcwd() + '\dataset_acoustic_lane_4_classes'
@@ -28,7 +28,6 @@ def pre_processing(filenames):
 			inputs.append(wav_data[I*params.PATCH_FRAMES:I*(params.PATCH_FRAMES+1)])
 			labels.append(label)
 	return inputs, labels
-
 
 def build_folds_test(waveforms, labels, classes):
 	X_test = []
@@ -141,8 +140,8 @@ def build_folds_test(waveforms, labels, classes):
 
 	return [fold_1, fold_2, fold_3, fold_4, fold_5], X_test, y_test
 
-def save_to_file(accuracy_train_scores, accuracy_validation_scores, precision_train_scores, precision_validation_scores, recall_train_scores, recall_validation_scores, accuracy_test_scores, precision_test_scores, recall_test_scores, train_error, validation_error, test_error):
-	with open("logs/log.txt", "w") as f:
+def save_to_file(accuracy_train_scores, accuracy_validation_scores, precision_train_scores, precision_validation_scores, recall_train_scores, recall_validation_scores, accuracy_test_scores, precision_test_scores, recall_test_scores, train_error, validation_error, test_error, filename):
+	with open("logs/" + filename, "w") as f:
 
 		accuracy_train = [accuracy_train_scores[0][-1], accuracy_train_scores[1][-1], accuracy_train_scores[2][-1], accuracy_train_scores[3][-1], accuracy_train_scores[4][-1]]
 		accuracy_validation = [accuracy_validation_scores[0][-1], accuracy_validation_scores[1][-1], accuracy_validation_scores[2][-1], accuracy_validation_scores[3][-1], accuracy_validation_scores[4][-1]]
@@ -161,30 +160,11 @@ def save_to_file(accuracy_train_scores, accuracy_validation_scores, precision_tr
 		tt_error = [test_error[0], test_error[1], test_error[2], test_error[3], test_error[4]]
 
 		f.write("Accuracy: \n")
-		f.write("	Fold 1: \n")
-		f.write("		Training: " + str(accuracy_train_scores[0][-1]) + "\n")
-		f.write("		Validation: " + str(accuracy_validation_scores[0][-1]) + "\n")
-		f.write("		Test: " + str(accuracy_test_scores[0]) + "\n\n")
-
-		f.write("	Fold 2: \n")
-		f.write("		Training: " + str(accuracy_train_scores[1][-1]) + "\n")
-		f.write("		Validation: " + str(accuracy_validation_scores[1][-1]) + "\n")
-		f.write("		Test: " + str(accuracy_test_scores[1]) + "\n\n")
-
-		f.write("	Fold 3: \n")
-		f.write("		Training: " + str(accuracy_train_scores[2][-1]) + "\n")
-		f.write("		Validation: " + str(accuracy_validation_scores[2][-1]) + "\n")
-		f.write("		Test: " + str(accuracy_test_scores[2]) + "\n\n")
-
-		f.write("	Fold 4: \n")
-		f.write("		Training: " + str(accuracy_train_scores[3][-1]) + "\n")
-		f.write("		Validation: " + str(accuracy_validation_scores[3][-1]) + "\n")
-		f.write("		Test: " + str(accuracy_test_scores[3]) + "\n\n")
-
-		f.write("	Fold 5: \n")
-		f.write("		Training: " + str(accuracy_train_scores[4][-1]) + "\n")
-		f.write("		Validation: " + str(accuracy_validation_scores[4][-1]) + "\n")
-		f.write("		Test: " + str(accuracy_test_scores[4]) + "\n\n")
+		for i in range(5):
+			f.write("	Fold %d: \n" % (i+1))
+			f.write("		Training: " + str(accuracy_train_scores[i][-1]) + "\n")
+			f.write("		Validation: " + str(accuracy_validation_scores[i][-1]) + "\n")
+			f.write("		Test: " + str(accuracy_test_scores[i]) + "\n\n")
 
 		f.write("   Mean during training: " + str(np.mean(accuracy_train)) + "\n")
 		f.write("   Standart desviation during training: " + str(np.std(accuracy_train)) + "\n\n")
@@ -194,32 +174,11 @@ def save_to_file(accuracy_train_scores, accuracy_validation_scores, precision_tr
 		f.write("   Standart desviation during test: " + str(np.std(accuracy_test)) + "\n\n")
 
 		f.write("Precision: \n")
-		f.write("	Fold 1: \n")
-		f.write("		Training: " + str(precision_train_scores[0][-1]) + "\n")
-		f.write("		Validation: " + str(precision_validation_scores[0][-1]) + "\n")
-		f.write("		Test: " + str(precision_test_scores[0]) + "\n\n")
-
-		f.write("	Fold 2: \n")
-		f.write("		Training: " + str(precision_train_scores[1][-1]) + "\n")
-		f.write("		Validation: " + str(precision_validation_scores[1][-1]) + "\n")
-		f.write("		Test: " + str(precision_test_scores[1]) + "\n\n")
-
-		f.write("	Fold 3: \n")
-		f.write("		Training: " + str(precision_train_scores[2][-1]) + "\n")
-		f.write("		Validation: " + str(precision_validation_scores[2][-1]) + "\n")
-		f.write("		Test: " + str(precision_test_scores[2]) + "\n\n")
-
-		f.write("	Fold 4: \n")
-		f.write("		Training: " + str(precision_train_scores[3][-1]) + "\n")
-		f.write("		Validation: " + str(precision_validation_scores[3][-1]) + "\n")
-		f.write("		Test: " + str(precision_test_scores[3]) + "\n\n")
-
-		f.write("	Fold 5: \n")
-		f.write("		Training: " + str(precision_train_scores[4][-1]) + "\n")
-		f.write("		Validation: " + str(precision_validation_scores[4][-1]) + "\n")
-		f.write("		Test: " + str(precision_test_scores[4]) + "\n\n")
-
-		f.write("\n")
+		for i in range(5):
+			f.write("	Fold %d: \n" % (i+1))
+			f.write("		Training: " + str(precision_train_scores[i][-1]) + "\n")
+			f.write("		Validation: " + str(precision_validation_scores[i][-1]) + "\n")
+			f.write("		Test: " + str(precision_test_scores[i]) + "\n\n")
 
 		f.write("   Mean during training: " + str(np.mean(precision_train)) + "\n")
 		f.write("   Standart desviation during training: " + str(np.std(precision_train)) + "\n\n")
@@ -229,32 +188,11 @@ def save_to_file(accuracy_train_scores, accuracy_validation_scores, precision_tr
 		f.write("   Standart desviation during test: " + str(np.std(precision_test)) + "\n\n")
 
 		f.write("Recall: \n")
-		f.write("	Fold 1: \n")
-		f.write("		Training: " + str(recall_train_scores[0][-1]) + "\n")
-		f.write("		Validation: " + str(recall_validation_scores[0][-1]) + "\n")
-		f.write("		Test: " + str(recall_test_scores[0]) + "\n\n")
-
-		f.write("	Fold 2: \n")
-		f.write("		Training: " + str(recall_train_scores[1][-1]) + "\n")
-		f.write("		Validation: " + str(recall_validation_scores[1][-1]) + "\n")
-		f.write("		Test: " + str(recall_test_scores[1]) + "\n\n")
-
-		f.write("	Fold 3: \n")
-		f.write("		Training: " + str(recall_train_scores[2][-1]) + "\n")
-		f.write("		Validation: " + str(recall_validation_scores[2][-1]) + "\n")
-		f.write("		Test: " + str(recall_test_scores[2]) + "\n\n")
-
-		f.write("	Fold 4: \n")
-		f.write("		Training: " + str(recall_train_scores[3][-1]) + "\n")
-		f.write("		Validation: " + str(recall_validation_scores[3][-1]) + "\n")
-		f.write("		Test: " + str(recall_test_scores[3]) + "\n\n")
-
-		f.write("	Fold 5: \n")
-		f.write("		Training: " + str(recall_train_scores[4][-1]) + "\n")
-		f.write("		Validation: " + str(recall_validation_scores[4][-1]) + "\n")
-		f.write("		Test: " + str(recall_test_scores[4]) + "\n\n")
-
-		f.write("\n")
+		for i in range(5):
+			f.write("	Fold %d: \n" % (i+1))
+			f.write("		Training: " + str(recall_train_scores[i][-1]) + "\n")
+			f.write("		Validation: " + str(recall_validation_scores[i][-1]) + "\n")
+			f.write("		Test: " + str(recall_test_scores[i]) + "\n\n")
 
 		f.write("   Mean during training: " + str(np.mean(recall_train)) + "\n")
 		f.write("   Standart desviation during training: " + str(np.std(recall_train)) + "\n\n")
@@ -263,38 +201,68 @@ def save_to_file(accuracy_train_scores, accuracy_validation_scores, precision_tr
 		f.write("   Mean during test: " + str(np.mean(recall_test)) + "\n")
 		f.write("   Standart desviation during test: " + str(np.std(recall_test)) + "\n\n")
 
-		f.write("Error: \n")
-		f.write("	Fold 1: \n")
-		f.write("		Training: " + str(t_error[0]) + "\n")
-		f.write("		Validation: " + str(v_error[0]) + "\n")
-		f.write("		Test: " + str(tt_error[0]) + "\n\n")
 
-		f.write("	Fold 2: \n")
-		f.write("		Training: " + str(t_error[1]) + "\n")
-		f.write("		Validation: " + str(v_error[1]) + "\n")
-		f.write("		Test: " + str(tt_error[1]) + "\n\n")
+		if(train_error and validation_error and test_error):
+			f.write("Error: \n")
+			for i in range(5):
+				f.write("	Fold %d: \n" % (i+1))
+				f.write("		Training: " + str(t_error[i]) + "\n")
+				f.write("		Validation: " + str(v_error[i]) + "\n")
+				f.write("		Test: " + str(tt_error[i]) + "\n\n")
+			
+			f.write("\n")
+			f.write("   Mean during training: " + str(np.mean(t_error)) + "\n")
+			f.write("   Standart desviation during training: " + str(np.std(t_error)) + "\n\n")
+			f.write("   Mean during validation: " + str(np.mean(v_error)) + "\n")
+			f.write("   Standart desviation during validation: " + str(np.std(v_error)) + "\n\n")
+			f.write("   Mean during tests: " + str(np.mean(tt_error)) + "\n")
+			f.write("   Standart desviation during tests: " + str(np.std(tt_error)) + "\n\n")
 
-		f.write("	Fold 3: \n")
-		f.write("		Training: " + str(t_error[2]) + "\n")
-		f.write("		Validation: " + str(v_error[2]) + "\n")
-		f.write("		Test: " + str(tt_error[2]) + "\n\n")
+	f.close()
 
-		f.write("	Fold 4: \n")
-		f.write("		Training: " + str(t_error[3]) + "\n")
-		f.write("		Validation: " + str(v_error[3]) + "\n")
-		f.write("		Test: " + str(tt_error[3]) + "\n\n")
 
-		f.write("	Fold 5: \n")
-		f.write("		Training: " + str(t_error[4]) + "\n")
-		f.write("		Validation: " + str(v_error[4]) + "\n")
-		f.write("		Test: " + str(tt_error[4]) + "\n\n")
+def save_to_file_per_class(accuracy_train_scores, accuracy_validation_scores, precision_train_scores, precision_validation_scores, recall_train_scores, recall_validation_scores, accuracy_test_scores, precision_test_scores, recall_test_scores, filename):
+	with open("logs/" + filename, "w") as f:
 
-		f.write("\n")
-		f.write("   Mean during training: " + str(np.mean(t_error)) + "\n")
-		f.write("   Standart desviation during training: " + str(np.std(t_error)) + "\n\n")
-		f.write("   Mean during validation: " + str(np.mean(v_error)) + "\n")
-		f.write("   Standart desviation during validation: " + str(np.std(v_error)) + "\n\n")
-		f.write("   Mean during tests: " + str(np.mean(tt_error)) + "\n")
-		f.write("   Standart desviation during tests: " + str(np.std(tt_error)) + "\n\n")
+		f.write("Accuracy: \n")
+		for i in range(5):
+			f.write("	Fold %d: \n" % (i+1))
+			f.write("		Training: " + str(accuracy_train_scores[i]) + "\n")
+			f.write("		Validation: " + str(accuracy_validation_scores[i]) + "\n")
+			f.write("		Test: " + str(accuracy_test_scores[i]) + "\n\n")
 
+		f.write("   Mean during training: " + str(np.mean(accuracy_train_scores)) + "\n")
+		f.write("   Standart desviation during training: " + str(np.std(accuracy_train_scores)) + "\n\n")
+		f.write("   Mean during validation: " + str(np.mean(accuracy_validation_scores)) + "\n")
+		f.write("   Standart desviation during validation: " + str(np.std(accuracy_validation_scores)) + "\n\n")
+		f.write("   Mean during test: " + str(np.mean(accuracy_test_scores)) + "\n")
+		f.write("   Standart desviation during test: " + str(np.std(accuracy_test_scores)) + "\n\n")
+
+		f.write("Precision: \n")
+		for i in range(5):
+			f.write("	Fold %d: \n" % (i+1))
+			f.write("		Training: " + str(precision_train_scores[i]) + "\n")
+			f.write("		Validation: " + str(precision_validation_scores[i]) + "\n")
+			f.write("		Test: " + str(precision_test_scores[i]) + "\n\n")
+
+		f.write("   Mean during training: " + str(np.mean(precision_train_scores)) + "\n")
+		f.write("   Standart desviation during training: " + str(np.std(precision_train_scores)) + "\n\n")
+		f.write("   Mean during validation: " + str(np.mean(precision_validation_scores)) + "\n")
+		f.write("   Standart desviation during validation: " + str(np.std(precision_validation_scores)) + "\n\n")
+		f.write("   Mean during test: " + str(np.mean(precision_test_scores)) + "\n")
+		f.write("   Standart desviation during test: " + str(np.std(precision_test_scores)) + "\n\n")
+
+		f.write("Recall: \n")
+		for i in range(5):
+			f.write("	Fold %d: \n" % (i+1))
+			f.write("		Training: " + str(recall_train_scores[i]) + "\n")
+			f.write("		Validation: " + str(recall_validation_scores[i]) + "\n")
+			f.write("		Test: " + str(recall_test_scores[i]) + "\n\n")
+
+		f.write("   Mean during training: " + str(np.mean(recall_train_scores)) + "\n")
+		f.write("   Standart desviation during training: " + str(np.std(recall_train_scores)) + "\n\n")
+		f.write("   Mean during validation: " + str(np.mean(recall_validation_scores)) + "\n")
+		f.write("   Standart desviation during validation: " + str(np.std(recall_validation_scores)) + "\n\n")
+		f.write("   Mean during test: " + str(np.mean(recall_test_scores)) + "\n")
+		f.write("   Standart desviation during test: " + str(np.std(recall_test_scores)) + "\n\n")
 	f.close()

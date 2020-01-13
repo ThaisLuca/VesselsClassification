@@ -4,7 +4,10 @@ from __future__ import division, print_function
 
 import sys
 
-import yamnet_model as ym
+import params
+import yamnet as yamnet_model
+
+import yamnet_model as yamnet_fine_tuning
 
 import numpy as np
 import resampy
@@ -18,6 +21,7 @@ from keras.models import Sequential, Model
 from keras.layers import Dense, Flatten
 from keras import backend as K
 from tensorflow.keras import optimizers
+from keras.models import load_model
 
 import utils as util
 import plot as plt
@@ -41,6 +45,36 @@ except Exception as e:
 
 classes = [0,1,2,3]
 labels_dict = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+
+def get_model():
+	# Build MLP
+	params.NUM_CLASSES = 4
+	yamnet = yamnet_model.yamnet_frames_model(params)
+
+	sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+	yamnet.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
+
+	return yamnet
+	yamnet.layers[i].set_weights
+	for i, weights in enumerate(weights_list[:-3]):
+		yamnet.layers[i].set_weights(weights)
+	
+	return yamnet
+
+	x = yamnet.output
+	x = Dense(100, activation='relu')(x)
+	x = Dense(4, activation='softmax')(x)
+	model = Model(vgg_model.input, x)
+
+	#network_size = len(vgg_model.layers)
+	#for n in range(0, network_size):
+	#	model.layers[n].trainable = False
+	#	print(model.layers[n].trainable)
+
+	sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+	model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
+
+	return model
 
 def main():
 	accuracy_train_scores = []
@@ -69,12 +103,6 @@ def main():
 	f_y_val = 3
 
 	all_files = util.get_files_path()[4:]
-
-	# Build network
-	model = ym.fine_tuning()
-	#print(model.summary())
-
-	return
 
 	waveforms = {}
 	labels = []
@@ -113,6 +141,7 @@ def main():
 		Y_V = to_categorical(Y_V)
 
 		print(X.shape, Y.shape)
+		model = get_model()
 		history = model.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
 
 		# Save train and validation accuracy

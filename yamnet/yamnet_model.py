@@ -335,8 +335,9 @@ def get_model():
 	output = _batch_norm(name='{}/pointwise_conv/bn'.format(name))(output)
 	output = layers.ReLU(name='{}/pointwise_conv/relu'.format(name))(output)
 
-	net = layers.GlobalAveragePooling2D()(output)
-	output = layers.Dense(100, activation='relu')(net)
+	output = layers.GlobalAveragePooling2D()(output)
+	
+	output = layers.Dense(100, activation='relu')(output)
 	output = layers.Dense(4, activation='softmax')(output)
 	#logits = layers.Dense(units=params.NUM_CLASSES, use_bias=True)(net)
 	#predictions = layers.Activation(name=params.EXAMPLE_PREDICTIONS_LAYER_NAME, activation=params.CLASSIFIER_ACTIVATION)(logits)
