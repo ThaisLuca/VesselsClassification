@@ -28,6 +28,7 @@ from keras.utils import to_categorical
 from keras.wrappers.scikit_learn import KerasClassifier
 
 from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
 
 try:
   from tensorflow.compat.v1 import ConfigProto
@@ -73,10 +74,13 @@ def main():
 	precision_validation_per_class = {}
 	recall_train_per_class = {}
 	recall_validation_per_class = {}
+	f1_score_train_per_class = {}
+	f1_score_validation_per_class = {}
 
 	accuracy_test_per_class = {}
 	precision_test_per_class = {}
 	recall_test_per_class = {}
+	f1_score_test_per_class = {}
 
 	for c in classes:
 		accuracy_train_per_class[c] = []
@@ -88,11 +92,13 @@ def main():
 		accuracy_test_per_class[c] = []
 		precision_test_per_class[c] = []
 		recall_test_per_class[c] = []
+		f1_score_train_per_class[c] = []
+		f1_score_validation_per_class[c] = []
+		f1_score_test_per_class[c] = []
 
 	accuracy_test_scores = []
 	precision_test_scores = []
 	recall_test_scores = []
-
 
 	train_error = []
 	validation_error = []
@@ -190,13 +196,18 @@ def main():
 		#callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
 		history = model.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V), verbose=False) #, callbacks=[callback])
 
+		# Predict values
 		y_pred = model.predict(X)
+
+		# Get precision, recall and F1-score
 		y_true = np.argmax(Y, axis=1)
 		y_pred = np.argmax(y_pred, axis=1)
 		report = classification_report(y_true, y_pred, output_dict=True)
+		accuracy = util.per_class_accuracy(y_pred, y_true, classes)
 
 		for c in classes:
-			accuracy_train_per_class[c].append(report[str(c)]['f1-score'])
+			accuracy_train_per_class[c].append(accuracy[c])
+			f1_score_train_per_class[c].append(report[str(c)]['f1-score'])
 			precision_train_per_class[c].append(report[str(c)]['precision'])
 			recall_train_per_class[c].append(report[str(c)]['recall'])
 
@@ -221,11 +232,13 @@ def main():
 		y_true = np.argmax(Y_V, axis=1)
 		y_pred = np.argmax(y_pred, axis=1)
 		report = classification_report(y_true, y_pred, output_dict=True)
+		accuracy = util.per_class_accuracy(y_pred, y_true, classes)
 
 		for c in classes:
-			accuracy_validation_per_class[c].append(report[str(c)]['f1-score'])
+			accuracy_validation_per_class[c].append(accuracy[c])
 			precision_validation_per_class[c].append(report[str(c)]['precision'])
 			recall_validation_per_class[c].append(report[str(c)]['recall'])
+			f1_score_validation_per_class[c].append(report[str(c)]['f1-score'])
 
 		score = model.evaluate(X_T, Y_T)
 
@@ -244,34 +257,65 @@ def main():
 		y_true = np.argmax(Y_T, axis=1)
 		y_pred = np.argmax(y_pred, axis=1)
 		report = classification_report(y_true, y_pred, output_dict=True)
+		accuracy = util.per_class_accuracy(y_pred, y_true, classes)
 
 		for c in classes:
-			accuracy_test_per_class[c].append(report[str(c)]['f1-score'])
+			accuracy_test_per_class[c].append(accuracy[c])
+			f1_score_test_per_class[c].append(report[str(c)]['f1-score'])
 			precision_test_per_class[c].append(report[str(c)]['precision'])
 			recall_test_per_class[c].append(report[str(c)]['recall'])
 
 	print("Training information")
 	for c in classes:
 		print("		Class " + str(c) + ":")
-		print("F1-Score: " + str(sum(accuracy_train_per_class[c])/len(folds)))
-		print("Precision: " + str(sum(precision_train_per_class[c])/len(folds)))
-		print("Recall: " + str(sum(recall_train_per_class[c])/len(folds)))
+		print("Accuracy: " + str(np.mean(accuracy_train_per_class[c])))
+		print("F1-Score: " + str(np.mean(f1_score_train_per_class[c])))
+		print("Precision: " + str(np.mean(precision_train_per_class[c])))
+		print("Recall: " + str(np.mean(recall_train_per_class[c])))
 	print("\n")
+	print("Standard Deviation")
+	for c in classes:
+		print("		Class " + str(c) + ":")
+		print("Accuracy: " + str(np.std(accuracy_train_per_class[c])))
+		print("F1-Score: " + str(np.std(f1_score_train_per_class[c])))
+		print("Precision: " + str(np.std(precision_train_per_class[c])))
+		print("Recall: " + str(np.std(recall_train_per_class[c])))
+	print("\n\n")
 
 	print("Validation information")
+	print("Mean\n")
 	for c in classes:
 		print("		Class " + str(c) + ":")
-		print("F1-Score: " + str(sum(accuracy_validation_per_class[c])/len(folds)))
-		print("Precision: " + str(sum(precision_validation_per_class[c])/len(folds)))
-		print("Recall: " + str(sum(recall_validation_per_class[c])/len(folds)))
+		print("Accuracy: " + str(np.mean(accuracy_validation_per_class[c])))
+		print("F1-Score: " + str(np.mean(f1_score_validation_per_class[c])))
+		print("Precision: " + str(np.mean(precision_validation_per_class[c])))
+		print("Recall: " + str(np.mean(recall_validation_per_class[c])))
 	print("\n")
+	print("Standard Deviation")
+	for c in classes:
+		print("		Class " + str(c) + ":")
+		print("Accuracy: " + str(np.std(accuracy_validation_per_class[c])))
+		print("F1-Score: " + str(np.std(f1_score_validation_per_class[c])))
+		print("Precision: " + str(np.std(precision_validation_per_class[c])))
+		print("Recall: " + str(np.std(recall_validation_per_class[c])))
+	print("\n\n")
 
 	print("Test information")
+	print("Mean\n")
 	for c in classes:
 		print("		Class " + str(c) + ":")
-		print("F1-Score: " + str(sum(accuracy_test_per_class[c])/len(folds)))
-		print("Precision: " + str(sum(precision_test_per_class[c])/len(folds)))
-		print("Recall: " + str(sum(recall_test_per_class[c])/len(folds)))
+		print("Accuracy: " + str(np.mean(accuracy_test_per_class[c])))
+		print("F1-Score: " + str(np.mean(f1_score_test_per_class[c])))
+		print("Precision: " + str(np.mean(precision_test_per_class[c])))
+		print("Recall: " + str(np.mean(recall_test_per_class[c])))
+	print("\n")
+	print("Standard Deviation")
+	for c in classes:
+		print("		Class " + str(c) + ":")
+		print("Accuracy: " + str(np.std(accuracy_test_per_class[c])))
+		print("F1-Score: " + str(np.std(f1_score_test_per_class[c])))
+		print("Precision: " + str(np.std(precision_test_per_class[c])))
+		print("Recall: " + str(np.std(recall_test_per_class[c])))
 
 	#plt.plot(accuracy_train_scores, accuracy_validation_scores, epochs, "Treinamento", "Validação", "Acurácia")
 	#plt.plot(precision_train_scores, precision_validation_scores, epochs, "Treinamento", "Validação", "Precisão")
