@@ -28,7 +28,8 @@ def plot_loss(train_loss, val_loss, epochs):
 	)
 
 	plt.legend(loc="lower right")
-	plt.show()
+	#plt.show()
+	plt.savefig("epoch_loss.pdf")
 
 
 def plot(train_scores, test_scores, epochs, training_label, validation_label, ylabel):
@@ -80,4 +81,5 @@ def plot(train_scores, test_scores, epochs, training_label, validation_label, yl
 	)
 
 	plt.legend(loc="lower right")
-	plt.show()
+	#plt.show()
+	plt.savefig("epoch_" + ylabel + ".pdf")

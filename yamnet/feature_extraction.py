@@ -317,10 +317,10 @@ def main():
 		print("Precision: " + str(np.std(precision_test_per_class[c])))
 		print("Recall: " + str(np.std(recall_test_per_class[c])))
 
-	#plt.plot(accuracy_train_scores, accuracy_validation_scores, epochs, "Treinamento", "Validação", "Acurácia")
-	#plt.plot(precision_train_scores, precision_validation_scores, epochs, "Treinamento", "Validação", "Precisão")
-	#plt.plot(recall_train_scores, recall_validation_scores, epochs, "Treinamento", "Validação", "Recall")
-	#plt.plot_loss(losses, val_losses, epochs)
+	plt.plot(accuracy_train_scores, accuracy_validation_scores, epochs, "Treinamento", "Validação", "Acurácia")
+	plt.plot(precision_train_scores, precision_validation_scores, epochs, "Treinamento", "Validação", "Precisão")
+	plt.plot(recall_train_scores, recall_validation_scores, epochs, "Treinamento", "Validação", "Recall")
+	plt.plot_loss(losses, val_losses, epochs)
 
 	for c in classes:  
 		util.save_to_file_per_class(accuracy_train_per_class[c], accuracy_validation_per_class[c], precision_train_per_class[c], precision_validation_per_class[c], recall_train_per_class[c], recall_validation_per_class[c], accuracy_test_per_class[c], precision_test_per_class[c], recall_test_per_class[c], "logs_per_class_" + str(c) + ".txt")
