@@ -140,11 +140,40 @@ def build_folds_test(waveforms, labels, classes):
 
 	return [fold_1, fold_2, fold_3, fold_4, fold_5], X_test, y_test
 
+def initialize_metrics_per_class(classes, train, validation, test):
+	for c in classes:
+		train[c] = []
+		validation[c] = []
+		test[c] = []
+
+	return train, validation, test
+
+
 def per_class_accuracy(y_preds,y_true,class_labels):
     return [np.mean([
         (y_true[pred_idx] == np.round(y_pred)) for pred_idx, y_pred in enumerate(y_preds) 
       if y_true[pred_idx] == int(class_label)
                     ]) for class_label in class_labels]
+
+def print_mean(classes, accuracy, f1_score, precision, recall):
+	print("Mean")
+	for c in classes:
+		print("		Class " + str(c) + ":")
+		print("Accuracy: " + str(np.mean(accuracy[c])))
+		print("F1-Score: " + str(np.mean(f1_score[c])))
+		print("Precision: " + str(np.mean(precision[c])))
+		print("Recall: " + str(np.mean(recall[c])))
+	print("\n")
+
+def print_std(classes, accuracy, f1_score, precision, recall):
+	print("Standard Deviation")
+	for c in classes:
+		print("		Class " + str(c) + ":")
+		print("Accuracy: " + str(np.std(accuracy[c])))
+		print("F1-Score: " + str(np.std(f1_score[c])))
+		print("Precision: " + str(np.std(precision[c])))
+		print("Recall: " + str(np.std(recall[c])))
+	print("\n\n")
 
 def save_to_file(accuracy_train_scores, accuracy_validation_scores, precision_train_scores, precision_validation_scores, recall_train_scores, recall_validation_scores, accuracy_test_scores, precision_test_scores, recall_test_scores, train_error, validation_error, test_error, filename):
 	with open("logs/" + filename, "w") as f:

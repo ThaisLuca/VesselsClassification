@@ -11,6 +11,7 @@ import soundfile as sf
 
 import params
 import yamnet as yamnet_model
+import plot as plt
 
 from sklearn.ensemble import AdaBoostClassifier
 
@@ -20,8 +21,10 @@ from keras.layers import Dense, Activation, Input
 from keras import backend as K
 from keras import optimizers
 
+import sys
+# insert at 1, 0 is the script path (or '' in REPL)
+sys.path.insert(1, '/VesselsClassification/')
 import utils as util
-import plot as plt
 
 import keras.metrics
 from keras.utils import to_categorical
@@ -61,58 +64,31 @@ def get_model():
 	return model
 
 def main():
-	accuracy_train_scores = []
-	accuracy_validation_scores = []
-	precision_train_scores = []
-	precision_validation_scores = []
-	recall_train_scores = []
-	recall_validation_scores = []
 
-	accuracy_train_per_class = {}
-	accuracy_validation_per_class = {}
-	precision_train_per_class = {}
-	precision_validation_per_class = {}
-	recall_train_per_class = {}
-	recall_validation_per_class = {}
-	f1_score_train_per_class = {}
-	f1_score_validation_per_class = {}
-
-	accuracy_test_per_class = {}
-	precision_test_per_class = {}
-	recall_test_per_class = {}
-	f1_score_test_per_class = {}
-
-	for c in classes:
-		accuracy_train_per_class[c] = []
-		accuracy_validation_per_class[c] = []
-		precision_train_per_class[c] = []
-		precision_validation_per_class[c] = []
-		recall_train_per_class[c] = []
-		recall_validation_per_class[c] = []
-		accuracy_test_per_class[c] = []
-		precision_test_per_class[c] = []
-		recall_test_per_class[c] = []
-		f1_score_train_per_class[c] = []
-		f1_score_validation_per_class[c] = []
-		f1_score_test_per_class[c] = []
-
-	accuracy_test_scores = []
-	precision_test_scores = []
-	recall_test_scores = []
-
-	train_error = []
-	validation_error = []
-	test_error = []
-
-	best_loss = 0
-	best_model = None
-
-	epochs=1000
+	EPOCHS=1000
 
 	f_X_train = 0
 	f_y_train = 1
 	f_X_val = 2
 	f_y_val = 3
+
+	# General log variables
+	accuracy_train_scores, accuracy_validation_scores, accuracy_test_scores = [], [], []
+	precision_train_scores, precision_validation_scores, precision_test_scores = [], [], []
+	recall_train_scores, recall_validation_scores, recall_test_scores = [], [], []
+	train_error, validation_error, test_error = [], [], []
+
+	# Log variables for each class
+	accuracy_train_per_class, accuracy_validation_per_class, accuracy_test_per_class = {}, {}, {}
+	precision_train_per_class, precision_validation_per_class, precision_test_per_class = {}, {}, {}
+	recall_train_per_class, recall_validation_per_class, recall_test_per_class = {}, {}, {}
+	f1_score_train_per_class, f1_score_validation_per_class, f1_score_test_per_class = {}, {}, {}
+
+	# Initialize dictionaries for each metric 
+	accuracy_train_per_class, accuracy_validation_per_class, accuracy_test_per_class = util.initialize_metrics_per_class(classes, accuracy_train_per_class, accuracy_validation_per_class, accuracy_test_per_class)
+	precision_train_per_class, precision_validation_per_class, precision_test_per_class = util.initialize_metrics_per_class(classes, precision_train_per_class, precision_validation_per_class, precision_test_per_class)
+	recall_train_per_class, recall_validation_per_class, recall_test_per_class = util.initialize_metrics_per_class(classes, recall_train_per_class, recall_validation_per_class, recall_test_per_class)
+	f1_score_train_per_class, f1_score_validation_per_class, f1_score_test_per_class = util.initialize_metrics_per_class(classes, f1_score_train_per_class, f1_score_validation_per_class, f1_score_test_per_class)
 
 	all_files = util.get_files_path()[4:]
 
@@ -164,6 +140,10 @@ def main():
 
 	count = 1
 	for fold in folds:
+
+		print("Fold %d:" % count)
+		count += 1
+
 		X = []
 		X_V = []
 		Y = []
@@ -194,7 +174,7 @@ def main():
 
 		# Train and Validation
 		#callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
-		history = model.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V), verbose=False) #, callbacks=[callback])
+		history = model.fit(X, Y, epochs=EPOCHS, batch_size=32, validation_data=(X_V, Y_V), verbose=False) #, callbacks=[callback])
 
 		# Predict values
 		y_pred = model.predict(X)
@@ -248,10 +228,8 @@ def main():
 		precision_test_scores.append(score[2])
 		recall_test_scores.append(score[3])
 
-		print("Fold %d:" % count)
 		#print("Training accuracy: %.2f%%" % (history.history['accuracy'][-1]*100))
 		#print("Testing accuracy: %.2f%%" % (history.history['val_accuracy'][-1]*100))
-		count += 1
 
 		y_pred = model.predict(X_T)
 		y_true = np.argmax(Y_T, axis=1)
@@ -266,61 +244,23 @@ def main():
 			recall_test_per_class[c].append(report[str(c)]['recall'])
 
 	print("Training information")
-	for c in classes:
-		print("		Class " + str(c) + ":")
-		print("Accuracy: " + str(np.mean(accuracy_train_per_class[c])))
-		print("F1-Score: " + str(np.mean(f1_score_train_per_class[c])))
-		print("Precision: " + str(np.mean(precision_train_per_class[c])))
-		print("Recall: " + str(np.mean(recall_train_per_class[c])))
-	print("\n")
-	print("Standard Deviation")
-	for c in classes:
-		print("		Class " + str(c) + ":")
-		print("Accuracy: " + str(np.std(accuracy_train_per_class[c])))
-		print("F1-Score: " + str(np.std(f1_score_train_per_class[c])))
-		print("Precision: " + str(np.std(precision_train_per_class[c])))
-		print("Recall: " + str(np.std(recall_train_per_class[c])))
-	print("\n\n")
+	util.print_mean(classes, accuracy_train_per_class, f1_score_train_per_class, precision_train_per_class, recall_train_per_class)
+	util.print_std(classes, accuracy_train_per_class, f1_score_train_per_class, precision_train_per_class, recall_train_per_class)
 
 	print("Validation information")
-	print("Mean\n")
-	for c in classes:
-		print("		Class " + str(c) + ":")
-		print("Accuracy: " + str(np.mean(accuracy_validation_per_class[c])))
-		print("F1-Score: " + str(np.mean(f1_score_validation_per_class[c])))
-		print("Precision: " + str(np.mean(precision_validation_per_class[c])))
-		print("Recall: " + str(np.mean(recall_validation_per_class[c])))
-	print("\n")
-	print("Standard Deviation")
-	for c in classes:
-		print("		Class " + str(c) + ":")
-		print("Accuracy: " + str(np.std(accuracy_validation_per_class[c])))
-		print("F1-Score: " + str(np.std(f1_score_validation_per_class[c])))
-		print("Precision: " + str(np.std(precision_validation_per_class[c])))
-		print("Recall: " + str(np.std(recall_validation_per_class[c])))
-	print("\n\n")
+	util.print_mean(classes, accuracy_validation_per_class, f1_score_validation_per_class, precision_validation_per_class, recall_validation_per_class)
+	util.print_std(classes, accuracy_validation_per_class, f1_score_validation_per_class, precision_validation_per_class, recall_validation_per_class)
 
 	print("Test information")
-	print("Mean\n")
-	for c in classes:
-		print("		Class " + str(c) + ":")
-		print("Accuracy: " + str(np.mean(accuracy_test_per_class[c])))
-		print("F1-Score: " + str(np.mean(f1_score_test_per_class[c])))
-		print("Precision: " + str(np.mean(precision_test_per_class[c])))
-		print("Recall: " + str(np.mean(recall_test_per_class[c])))
-	print("\n")
-	print("Standard Deviation")
-	for c in classes:
-		print("		Class " + str(c) + ":")
-		print("Accuracy: " + str(np.std(accuracy_test_per_class[c])))
-		print("F1-Score: " + str(np.std(f1_score_test_per_class[c])))
-		print("Precision: " + str(np.std(precision_test_per_class[c])))
-		print("Recall: " + str(np.std(recall_test_per_class[c])))
+	util.print_mean(classes, accuracy_test_per_class, f1_score_test_per_class, precision_test_per_class, recall_test_per_class)
+	util.print_std(classes, accuracy_test_per_class, f1_score_test_per_class, precision_test_per_class, recall_test_per_class)
 
-	plt.plot(accuracy_train_scores, accuracy_validation_scores, epochs, "Treinamento", "Validação", "Acurácia")
-	plt.plot(precision_train_scores, precision_validation_scores, epochs, "Treinamento", "Validação", "Precisão")
-	plt.plot(recall_train_scores, recall_validation_scores, epochs, "Treinamento", "Validação", "Recall")
-	plt.plot_loss(losses, val_losses, epochs)
+	plt.plot(accuracy_train_scores, accuracy_validation_scores, EPOCHS, "Treinamento", "Validação", "Acurácia")
+	plt.plot(precision_train_scores, precision_validation_scores, EPOCHS, "Treinamento", "Validação", "Precisão")
+	plt.plot(recall_train_scores, recall_validation_scores, EPOCHS, "Treinamento", "Validação", "Recall")
+
+	#TODO: fix loss plot
+	#plt.plot_loss(losses, val_losses, epochs)
 
 	for c in classes:  
 		util.save_to_file_per_class(accuracy_train_per_class[c], accuracy_validation_per_class[c], precision_train_per_class[c], precision_validation_per_class[c], recall_train_per_class[c], recall_validation_per_class[c], accuracy_test_per_class[c], precision_test_per_class[c], recall_test_per_class[c], "logs_per_class_" + str(c) + ".txt")

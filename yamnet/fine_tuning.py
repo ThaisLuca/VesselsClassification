@@ -77,30 +77,31 @@ def get_model():
 	return model
 
 def main():
-	accuracy_train_scores = []
-	accuracy_validation_scores = []
-	precision_train_scores = []
-	precision_validation_scores = []
-	recall_train_scores = []
-	recall_validation_scores = []
-
-	accuracy_test_scores = []
-	precision_test_scores = []
-	recall_test_scores = []
-
-	train_error = []
-	validation_error = []
-	test_error = []
-
-	best_loss = 0
-	best_model = None
-
-	epochs=1000
+	
+	EPOCHS=1000
 
 	f_X_train = 0
 	f_y_train = 1
 	f_X_val = 2
 	f_y_val = 3
+
+	# General log variables
+	accuracy_train_scores, accuracy_validation_scores, accuracy_test_scores = [], [], []
+	precision_train_scores, precision_validation_scores, precision_test_scores = [], [], []
+	recall_train_scores, recall_validation_scores, recall_test_scores = [], [], []
+	train_error, validation_error, test_error = [], [], []
+
+	# Log variables for each class
+	accuracy_train_per_class, accuracy_validation_per_class, accuracy_test_per_class = {}, {}, {}
+	precision_train_per_class, precision_validation_per_class, precision_test_per_class = {}, {}, {}
+	recall_train_per_class, recall_validation_per_class, recall_test_per_class = {}, {}, {}
+	f1_score_train_per_class, f1_score_validation_per_class, f1_score_test_per_class = {}, {}, {}
+
+	# Initialize dictionaries for each metric 
+	accuracy_train_per_class, accuracy_validation_per_class, accuracy_test_per_class = util.initialize_metrics_per_class(classes, accuracy_train_per_class, accuracy_validation_per_class, accuracy_test_per_class)
+	precision_train_per_class, precision_validation_per_class, precision_test_per_class = util.initialize_metrics_per_class(classes, precision_train_per_class, precision_validation_per_class, precision_test_per_class)
+	recall_train_per_class, recall_validation_per_class, recall_test_per_class = util.initialize_metrics_per_class(classes, recall_train_per_class, recall_validation_per_class, recall_test_per_class)
+	f1_score_train_per_class, f1_score_validation_per_class, f1_score_test_per_class = util.initialize_metrics_per_class(classes, f1_score_train_per_class, f1_score_validation_per_class, f1_score_test_per_class)
 
 	all_files = util.get_files_path()[4:]
 
@@ -142,7 +143,7 @@ def main():
 
 		print(X.shape, Y.shape)
 		model = get_model()
-		history = model.fit(X, Y, epochs=epochs, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
+		history = model.fit(X, Y, epochs=EPOCHS, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
 
 		# Save train and validation accuracy
 		accuracy_train_scores.append(history.history['accuracy'])
@@ -163,16 +164,6 @@ def main():
 		# Evaluate on test set
 		score = model.evaluate(X_T, Y_T)
 
-		if count == 1 or count == 2:
-			best_loss = history.history['loss'][-1]
-			losses = history.history['loss']
-			val_losses = history.history['val_loss']
-
-		if best_loss > history.history['val_loss'][-1]:
-			best_loss = history.history['val_loss'][-1]
-			losses = history.history['loss']
-			val_losses = history.history['val_loss']
-
 		print("Fold %d:" % count)
 		#print("Training accuracy: %.2f%%" % (history.history['accuracy'][-1]*100))
 		#print("Testing accuracy: %.2f%%" % (history.history['val_accuracy'][-1]*100))
@@ -181,7 +172,9 @@ def main():
 	plt.plot(accuracy_train_scores, accuracy_validation_scores, epochs, "Treinamento", "Validação", "Acurácia")
 	plt.plot(precision_train_scores, precision_validation_scores, epochs, "Treinamento", "Validação", "Precisão")
 	plt.plot(recall_train_scores, recall_validation_scores, epochs, "Treinamento", "Validação", "Recall")
-	plt.plot_loss(losses, val_losses, epochs)
+
+	#TODO: fix loss plot
+	#plt.plot_loss(losses, val_losses, epochs)
 
 	util.save_to_file(accuracy_train_scores, accuracy_validation_scores, precision_train_scores, precision_validation_scores, recall_train_scores, recall_validation_scores, accuracy_test_scores, precision_test_scores, recall_test_scores, train_error, validation_error, test_error)
 	return
