@@ -7,8 +7,6 @@ import sys
 import params
 import yamnet as yamnet_model
 
-import yamnet_model as yamnet_fine_tuning
-
 import numpy as np
 import resampy
 import soundfile as sf
@@ -16,10 +14,7 @@ import soundfile as sf
 import tensorflow as tf
 from sklearn.ensemble import AdaBoostClassifier
 
-import keras
-from keras.models import Sequential, Model
-from keras.layers import Dense, Flatten
-from keras import backend as K
+from tensorflow.keras import Model, layers
 from tensorflow.keras import optimizers
 from keras.models import load_model
 
@@ -30,7 +25,6 @@ import features as features_lib
 
 import keras.metrics
 from keras.utils import to_categorical
-from keras.wrappers.scikit_learn import KerasClassifier
 
 try:
   from tensorflow.compat.v1 import ConfigProto
@@ -84,6 +78,21 @@ def main():
 	f_y_train = 1
 	f_X_val = 2
 	f_y_val = 3
+
+	# Build network
+	waveform = layers.Input(batch_shape=(None, None))
+	yamnet = yamnet_model.yamnet_frames_model(params)
+	yamnet = layers.Dense(100, activation='relu')(yamnet)
+	output = layers.Dense(4, activation='softmax')(yamnet)
+
+	model = Model(waveform, output)
+	model.load_weights('yamnet.h5', by_name=True)
+	sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+	model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
+
+	print(yamnet.summary())
+	return
+
 
 	# General log variables
 	accuracy_train_scores, accuracy_validation_scores, accuracy_test_scores = [], [], []
