@@ -41,9 +41,6 @@ except Exception as e:
 classes = [0,1,2,3]
 labels_dict = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
-# for I in range(len(audio)/tamanho_entrada):
-#	inputs.append(audio[I*tamanho_entrada:I*(tamanho_entrada+1)])
-
 def get_model():
 	# Build MLP
 	visible1 = Input(shape=(1024,))
