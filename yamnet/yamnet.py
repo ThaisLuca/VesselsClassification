@@ -106,7 +106,7 @@ def yamnet(features):
   return predictions
 
 
-def yamnet_frames_model(feature_params):
+def yamnet_frames_model(feature_params, fine_tuning=True):
   """Defines the YAMNet waveform-to-class-scores model.
 
   Args:
@@ -125,14 +125,15 @@ def yamnet_frames_model(feature_params):
     tf.squeeze(waveform, axis=0), feature_params)
   patches = features_lib.spectrogram_to_patches(spectrogram, feature_params)
   predictions = yamnet(patches)
-  frames_model = Model(name='yamnet_frames', 
+  if(not fine_tuning):
+    frames_model = Model(name='yamnet_frames', 
                        inputs=waveform, outputs=[predictions, spectrogram])
-  return frames_model
-
+    return frames_model
+  return predictions
 
 def class_names(class_map_csv):
   """Read the class name definition file and return a list of strings."""
   with open(class_map_csv) as csv_file:
     reader = csv.reader(csv_file)
-    next(reader)   # Skip header
+    next(reader)   # Skip header 
     return np.array([display_name for (_, _, display_name) in reader])

@@ -83,7 +83,7 @@ def main():
 	all_files = util.get_files_path()[4:]
 
 	# Build network
-	yamnet = yamnet_model.yamnet_frames_model(params)
+	yamnet = yamnet_model.yamnet_frames_model(params, fine_tuning=False)
 	yamnet.load_weights('yamnet.h5')
 
 	get_feature_layer_output = K.function([yamnet.layers[0].input], [yamnet.layers[-3].output])
