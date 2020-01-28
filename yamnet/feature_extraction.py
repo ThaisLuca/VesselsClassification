@@ -12,19 +12,13 @@ import soundfile as sf
 import params
 import yamnet as yamnet_model
 import plot as plt
-
-from sklearn.ensemble import AdaBoostClassifier
+import utils as util
 
 import keras
 from keras.models import Sequential, Model
 from keras.layers import Dense, Activation, Input
 from keras import backend as K
 from keras import optimizers
-
-import sys
-# insert at 1, 0 is the script path (or '' in REPL)
-sys.path.insert(1, '/VesselsClassification/')
-import utils as util
 
 import keras.metrics
 from keras.utils import to_categorical
@@ -46,7 +40,6 @@ except Exception as e:
 
 classes = [0,1,2,3]
 labels_dict = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
-boost = False
 
 # for I in range(len(audio)/tamanho_entrada):
 #	inputs.append(audio[I*tamanho_entrada:I*(tamanho_entrada+1)])
@@ -141,8 +134,7 @@ def main():
 	count = 1
 	for fold in folds:
 
-		print("Fold %d:" % count)
-		count += 1
+		print("Fold %d:\n" % count)
 
 		X = []
 		X_V = []
@@ -230,6 +222,7 @@ def main():
 
 		#print("Training accuracy: %.2f%%" % (history.history['accuracy'][-1]*100))
 		#print("Testing accuracy: %.2f%%" % (history.history['val_accuracy'][-1]*100))
+		count += 1
 
 		y_pred = model.predict(X_T)
 		y_true = np.argmax(Y_T, axis=1)
