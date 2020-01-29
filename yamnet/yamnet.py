@@ -127,7 +127,7 @@ def yamnet_frames_model(feature_params, fine_tuning=True):
   predictions = yamnet(patches)
   if(not fine_tuning):
     frames_model = Model(name='yamnet_frames', 
-                       inputs=waveform, outputs=predictions)
+                       inputs=waveform, outputs=[predictions, spectrogram])
   else:
     output = layers.Dense(100, activation='relu')(predictions)
     output = layers.Dense(4, activation='softmax')(output)

@@ -116,7 +116,6 @@ def main():
 		Y_V = np.array(fold[f_y_val])
 		Y_V = to_categorical(Y_V)
 
-		print(X.shape, Y.shape)
 		model = get_model()
 		history = model.fit(X, Y, epochs=EPOCHS, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
 
