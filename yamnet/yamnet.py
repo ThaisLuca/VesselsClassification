@@ -127,9 +127,14 @@ def yamnet_frames_model(feature_params, fine_tuning=True):
   predictions = yamnet(patches)
   if(not fine_tuning):
     frames_model = Model(name='yamnet_frames', 
-                       inputs=waveform, outputs=[predictions, spectrogram])
-    return frames_model
-  return predictions
+                       inputs=waveform, outputs=predictions)
+  else:
+    output = layers.Dense(100, activation='relu')(predictions)
+    output = layers.Dense(4, activation='softmax')(output)
+
+    frames_model = Model(name='yamnet_frames', 
+                         inputs=waveform, outputs=[output, spectrogram])
+  return frames_model
 
 def class_names(class_map_csv):
   """Read the class name definition file and return a list of strings."""

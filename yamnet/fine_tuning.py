@@ -41,34 +41,15 @@ classes = [0,1,2,3]
 labels_dict = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 
 def get_model():
-	# Build MLP
-	params.NUM_CLASSES = 4
+	
+	# Build network
 	yamnet = yamnet_model.yamnet_frames_model(params)
-
+	
+	yamnet.load_weights('yamnet.h5', by_name=True)
 	sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 	yamnet.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
 
 	return yamnet
-	yamnet.layers[i].set_weights
-	for i, weights in enumerate(weights_list[:-3]):
-		yamnet.layers[i].set_weights(weights)
-	
-	return yamnet
-
-	x = yamnet.output
-	x = Dense(100, activation='relu')(x)
-	x = Dense(4, activation='softmax')(x)
-	model = Model(vgg_model.input, x)
-
-	#network_size = len(vgg_model.layers)
-	#for n in range(0, network_size):
-	#	model.layers[n].trainable = False
-	#	print(model.layers[n].trainable)
-
-	sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-	model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
-
-	return model
 
 def main():
 	
@@ -78,21 +59,6 @@ def main():
 	f_y_train = 1
 	f_X_val = 2
 	f_y_val = 3
-
-	# Build network
-	waveform = layers.Input(batch_shape=(None, None))
-	yamnet = yamnet_model.yamnet_frames_model(params)
-	yamnet = layers.Dense(100, activation='relu')(yamnet)
-	output = layers.Dense(4, activation='softmax')(yamnet)
-
-	model = Model(waveform, output)
-	model.load_weights('yamnet.h5', by_name=True)
-	sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-	model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()])
-
-	print(yamnet.summary())
-	return
-
 
 	# General log variables
 	accuracy_train_scores, accuracy_validation_scores, accuracy_test_scores = [], [], []
