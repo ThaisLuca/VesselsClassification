@@ -163,7 +163,7 @@ def main(argv):
     Y_V = np.array(Y_V)
 
     print("Validation")
-    print(Counter(Y_test))
+    print(Counter(Y_V))
 
     Y_V = to_categorical(Y_V)
 
