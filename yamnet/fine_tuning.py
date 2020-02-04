@@ -106,6 +106,9 @@ def main():
 			last += avg
 
 	folds, X_test, Y_test = util.build_folds_test(waveforms, labels, classes)
+	X_T = np.array(X_test)
+	Y_T = np.array(Y_test)
+	Y_T = to_categorical(Y_T)
 
 	for fold in folds:
 		X = np.array(fold[f_X_train])
@@ -116,8 +119,11 @@ def main():
 		Y_V = np.array(fold[f_y_val])
 		Y_V = to_categorical(Y_V)
 
+		#TODO: ver essa conversão antes de colocar a rede pra treinar
+		print(len(X), len(Y), len(X_V), len(Y_V), len(X_T), len(Y_T))
 		model = get_model()
-		history = model.fit(X, Y, epochs=EPOCHS, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
+		print(model.summary())
+		history, _ = model.fit(X, Y, epochs=EPOCHS, batch_size=32, validation_data=(X_V, Y_V)) #, callbacks=[callback])
 
 		# Save train and validation accuracy
 		accuracy_train_scores.append(history.history['accuracy'])
